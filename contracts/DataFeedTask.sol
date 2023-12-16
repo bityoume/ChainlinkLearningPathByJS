@@ -38,9 +38,9 @@ contract DataFeedTask {
         owner = msg.sender;
         
         //修改以下 solidity 代码
-        linkPriceFeed = AggregatorV3Interface(address(0));
-        btcPriceFeed = AggregatorV3Interface(address(0));
-        ethPriceFeed = AggregatorV3Interface(address(0));
+        linkPriceFeed = AggregatorV3Interface(_linkPriceFeed);
+        btcPriceFeed = AggregatorV3Interface(_btcPriceFeed);
+        ethPriceFeed = AggregatorV3Interface(_ethPriceFeed);
     }
 
     /**
@@ -49,7 +49,9 @@ contract DataFeedTask {
      */
     function getLinkLatestPrice() public view returns (int256) {
         //在此添加并且修改 solidity 代码
-        return 0;
+        int answer;
+        ( , answer, , , ) = linkPriceFeed.latestRoundData();
+        return answer;
     }
 
     /**
@@ -58,7 +60,9 @@ contract DataFeedTask {
      */  
     function getBtcLatestPrice() public view returns (int256) {
         //在此添加并且修改 solidity 代码
-        return 0;
+        int answer;
+        ( , answer, , , ) = btcPriceFeed.latestRoundData();
+        return answer;
     }
 
     /**
@@ -67,7 +71,9 @@ contract DataFeedTask {
      */
     function getEthLatestPrice() public view returns (int256) {
         //在此添加并且修改 solidity 代码
-        return 0;
+        int answer;
+        ( , answer, , , ) = ethPriceFeed.latestRoundData();
+        return answer;
     }
 
     /**

@@ -37,13 +37,13 @@ contract VRFTask is VRFConsumerBaseV2 {
     // Chainlink VRF 在接收到请求后，会通过 fulfillRandomWords 将数据写回到用户合约，此过程需要消耗 gas
     // CALL_BACK_LIMIT 是回调函数可以消耗的最大 gas，根据回调函数的逻辑适当调整 CALL_BACK_LIMIT
     // 详情请查看：https://docs.chain.link/vrf/v2/subscription/examples/get-a-random-number#analyzing-the-contract
-    uint32 constant CALL_BACK_LIMIT = 100;
+    uint32 constant CALL_BACK_LIMIT = 10000000;
     
     // Chainlink VRF 在返回随机数之前应该等待的 Confirmation，值越大，返回的值越安全
-    uint16 constant REQUEST_CONFIRMATIONS = 1;
+    uint16 constant REQUEST_CONFIRMATIONS = 10;
 
     // Chainlink VRF 在每次请求后返回的随机数数量
-    uint32 constant NUM_WORDS = 1;
+    uint32 constant NUM_WORDS = 5;
 
     // 非本地环境部署，构造函数需要对 s_subscriptionId 和 s_keyHash 赋值（本地测试时不需要配置）
     // s_subscriptionId 是 VRF subscription ID（订阅 ID）
@@ -77,9 +77,9 @@ contract VRFTask is VRFConsumerBaseV2 {
         s_owner = msg.sender;
         
         //修改以下 solidity 代码
-        COORDINATOR = VRFCoordinatorV2Interface(address(0));
-        s_subscriptionId = 0;
-        s_keyHash = "";
+        COORDINATOR = VRFCoordinatorV2Interface(vrfCoordinator);
+        s_subscriptionId = _subscriptionId;
+        s_keyHash = _keyHash;
     }
 
     /** 
@@ -87,6 +87,8 @@ contract VRFTask is VRFConsumerBaseV2 {
      * */ 
     function requestRandomWords() external onlyOwner {
         //在此添加并且修改 solidity 代码
+        s_requestId = COORDINATOR.requestRandomWords(
+            s_keyHash, s_subscriptionId, REQUEST_CONFIRMATIONS,CALL_BACK_LIMIT, NUM_WORDS);
     }
 
     /**
@@ -99,6 +101,36 @@ contract VRFTask is VRFConsumerBaseV2 {
         override
     {
         //在此添加 solidity 代码
+
+        s_randomWords = new uint[](NUM_WORDS); 
+        
+        // Initialize array.
+        for (uint i = 0; i < NUM_WORDS; i++) {
+           s_randomWords[i] = i + 1;
+        }
+        
+        // Set the last item of the array which will be swapped.
+        uint last_item = NUM_WORDS - 1;
+        
+        // We need to do `size - 1` iterations to completely shuffle the array.
+        for (uint i = 1; i < NUM_WORDS - 1; i++) {
+            // Set the initial randomness based on the provided entropy.
+            bytes32 random = keccak256(abi.encodePacked(_randomWords[i]));
+        
+            // Select a number based on the randomness.
+            uint selected_item = uint(random) % last_item;
+            
+            // Swap items `selected_item <> last_item`.
+            uint aux = s_randomWords[last_item];
+            s_randomWords[last_item] = s_randomWords[selected_item];
+            s_randomWords[selected_item] = aux;
+            
+            // Decrease the size of the possible shuffle
+            // to preserve the already shuffled items.
+            // The already shuffled items are at the end of the array.
+            last_item--;
+        }
+
         
         emit ReturnedRandomness(s_randomWords);
     }

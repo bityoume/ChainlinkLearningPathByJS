@@ -35,6 +35,9 @@ contract AutomationTask is AutomationCompatible {
         interval = _interval;
         
         //在此添加 solidity 代码
+        for(uint i=0; i<SIZE; i++){
+            healthPoint[i] = MAXIMUM_HEALTH;
+        }
     }
 
     /*
@@ -44,6 +47,9 @@ contract AutomationTask is AutomationCompatible {
      */
     function fight(uint256 fighter) public {
         //在此添加 solidity 代码
+        require(fighter < SIZE, "out of range");
+        require(healthPoint[fighter] > 100, "low health");
+        healthPoint[fighter] -= 100;
     }
 
     /* 
@@ -63,12 +69,42 @@ contract AutomationTask is AutomationCompatible {
         override 
         returns (
             bool upkeepNeeded,
-            bytes memory /*performData*/
+            bytes memory performData
         )
     {
         //在此添加和修改 solidity 代码
+        upkeepNeeded = false;
+        performData = abi.encode("");
+
+        bool intervalPassed = (block.timestamp - lastTimeStamp >= interval);
+        if (!intervalPassed){
+            return (upkeepNeeded, performData);
+        }
+
+        uint counter = 0;
+        for(uint i=0; i<SIZE; i++){
+            if(healthPoint[i] < 1000){
+                counter++;
+            }
+        }
+
+        if (counter == 0){
+            return (upkeepNeeded, performData);
+        }
+
+        uint256[] memory indexUpdate = new uint256[](counter);
+        uint indexCounter = 0;
+        for(uint i=0; i<SIZE; i++){
+            if(healthPoint[i] < 1000){
+                indexUpdate[indexCounter] = i;
+                indexCounter++;
+            }
+        }
+
         upkeepNeeded = true;
-        
+        performData = abi.encode(indexUpdate);
+
+        return (upkeepNeeded, performData);
     }
 
     /* 
@@ -79,11 +115,22 @@ contract AutomationTask is AutomationCompatible {
      * 可以通过 performData 使用 checkUpkeep 的运算结果，减少 gas 费用
      */
     function performUpkeep(
-        bytes memory /*performData*/
+        bytes memory performData
     ) 
         external 
         override 
     {
         //在此添加 solidity 代码
+        if (performData.length == 0){
+            return;
+        }
+
+        uint256[] memory indexUpdate = abi.decode(performData, (uint256[]));
+        uint length = indexUpdate.length;
+        for(uint i=0; i<length; i++){
+            healthPoint[indexUpdate[i]] = 1000;
+        }
+
+        lastTimeStamp = block.timestamp;
     }
 }
